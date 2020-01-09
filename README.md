@@ -23,5 +23,7 @@ submit automatically for review and pass code online
 
 ### Customize configuration
 See [Vue Configuration Reference](https://cli.vuejs.org/config/).
+
 See [Puppeteer Configuration Reference](https://pptr.dev/).
+
 See [ElementUI Configuration Reference](https://pptr.dev/).
