@@ -178,7 +178,6 @@ export default {
     uploadCode() {
       // 清空状态
       this.clearStatus()
-      this.upload = true
       this.handleEmit()
     },
     /**
@@ -186,6 +185,7 @@ export default {
      * @returns {Promise<void>}
      */
     async handleEmit() {
+      this.upload = true
       const version = this.version
       const selectItem = this[`multipleSelection${version}`]
       let timeStamp
@@ -259,7 +259,7 @@ export default {
             await imgEl.screenshot({
               path: path.resolve(__dirname, '..', '..', `./${timeStamp}.png`)
             })
-            this.img = `file:///${path.resolve(__dirname, '..', '..', `./${timeStamp}.png`)}`
+            this.img = `file://${path.resolve(__dirname, '..', '..', `./${timeStamp}.png`)}`
             await page.waitForSelector('.js_wording') // 等待跳转后出现此class类
             const elTips = await page.$('.js_wording')
             this.tips = await elTips.evaluate(node => node.innerText)
@@ -269,9 +269,22 @@ export default {
           await page.goto(`${url}/wxamp/wacodepage/getcodepage?${page.url().split('?')[1]}`, {waitUntil: 'networkidle0'})
           if (this.type === 2) {
             // 此时将代码提交上线
-            await page.click('.code_version_test .weui-desktop-popover__wrp')
+            await page.click('.user_status .weui-desktop-popover__wrp')
             const el = await page.$$('.col_main_inner .self-weui-modal .weui-desktop-btn_primary')
             await el[el.length - 2].click()
+            await page.waitForSelector('.weui-desktop-qrcheck__img')
+            await page.waitFor(1000)
+            if (!this.isBrowser) {
+              const imgEl = await page.$('.weui-desktop-qrcheck__img')
+              fs.unlinkSync(path.resolve(__dirname, '..', '..', `./${timeStamp}.png`))
+              timeStamp = Date.now()
+              await imgEl.screenshot({
+                path: path.resolve(__dirname, '..', '..', `./${timeStamp}.png`)
+              })
+              this.img = `file://${path.resolve(__dirname, '..', '..', `./${timeStamp}.png`)}`
+              this.tips = '继续扫码确认发布代码~'
+            }
+            await page.waitForSelector('.empty_tips')
           } else if (this.type === 1) {
             // 此时将代码提交审核
             const el = await page.$$('.code_version_dev .code_version_log_ft')
@@ -286,14 +299,14 @@ export default {
             await pages.click('.tool_bar')
             await pages.waitFor(1000)
             await pages.close()
-            await page.evaluate(() => {
-              // 隐藏节点的click必须这么触发。page.click()无效
-              document.querySelector('[data-msgid="退出"]').click()
-            })
-            // 等待当前账号退出后将新的页面实例重新赋予 page
-            await page.waitForNavigation()
-            page = (await browser.pages())[1]
           }
+          await page.evaluate(() => {
+            // 隐藏节点的click必须这么触发。page.click()无效
+            document.querySelector('[data-msgid="退出"]').click()
+          })
+          // 等待当前账号退出后将新的页面实例重新赋予 page
+          await page.waitForNavigation()
+          page = (await browser.pages())[1]
           this.tips = `当前第${i}个小程序处理完成`
           if (!this.isBrowser) {
             fs.unlinkSync(path.resolve(__dirname, '..', '..', `./${timeStamp}.png`))
