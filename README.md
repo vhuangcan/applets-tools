@@ -1,29 +1,30 @@
 # applets-tools
 
-## Project setup
+## 项目安装
 ```
 npm install
 ```
 
-### Compiles and hot-reloads for development
+### 项目开发热重载
 ```
 npm run electron:serve
 ```
 
-### Compiles and minifies for production
+### 项目打包
 ```
 npm run electron:build
 ```
 
-### Project implementation function
+### 项目功能
 ```
-Multiple applets upload code automatically, 
-submit automatically for review and pass code online
+1、多小程序代码自动上传
+2、自动化提交代码审核
+3、审核通过代码提交上线
 ```
 
-### Customize configuration
-See [Vue Configuration Reference](https://cli.vuejs.org/config/).
+### 项目所用技术的开发文档
+[Vue Configuration Reference](https://cli.vuejs.org/config/).
 
-See [Puppeteer Configuration Reference](https://pptr.dev/).
+[Puppeteer Configuration Reference](https://pptr.dev/).
 
-See [ElementUI Configuration Reference](https://pptr.dev/).
+[ElementUI Configuration Reference](https://pptr.dev/).
