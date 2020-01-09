@@ -1,0 +1,260 @@
+/* ==========================================================================
+                      清除样式
+========================================================================== */
+html {
+  color: #010101;
+  background-color: #f3f3f3;
+  -webkit-text-size-adjust: none;
+  -ms-text-size-adjust: 100%;
+  font-size: 13px;
+}
+
+html * {
+  outline: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: none;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
+  'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  font-size: 13px;
+  min-width: 800px;
+  overflow: auto;
+}
+
+body,
+div,
+dl,
+dt,
+dd,
+ul,
+ol,
+li,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+pre,
+code,
+form,
+fieldset,
+legend,
+input,
+textarea,
+p,
+blockquote,
+th,
+td,
+hr,
+button,
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section {
+  margin: 0;
+  padding: 0;
+}
+
+input,
+select,
+textarea {
+  font-size: 100%;
+  -webkit-appearance: none;
+  line-height: 1.5em;
+  border: none;
+  resize: none;
+  background: none;
+}
+
+table {
+  //border-collapse: collapse !important;
+  //border-spacing: 0;
+}
+
+fieldset,
+img {
+  border: 0;
+  vertical-align: middle;
+  width: 100%;
+}
+
+abbr,
+acronym {
+  border: 0;
+  font-variant: normal;
+}
+
+del {
+  text-decoration: line-through;
+}
+
+address,
+caption,
+cite,
+code,
+dfn,
+em,
+th,
+var {
+  font-style: normal;
+  font-weight: 500;
+}
+
+ol,
+ul {
+  list-style: none;
+}
+
+caption,
+th {
+  text-align: left;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: 100%;
+  font-weight: 500;
+}
+
+q:before,
+q:after {
+  content: '';
+}
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sup {
+  top: -0.5em;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+ins,
+a {
+  text-decoration: none;
+}
+
+input[type='text'],
+input[type='password'] {
+  line-height: 1.5em;
+}
+
+input[type='button'],
+input[type='submit'],
+input[type='reset'],
+input {
+  -webkit-appearance: none;
+  line-height: 1.5em;
+  border-radius: 0;
+}
+
+*,
+*:after,
+*:before {
+  box-sizing: border-box;
+}
+
+button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: hsla(0, 0%, 100%, 0.6);
+}
+
+::-webkit-scrollbar-track {
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(144, 147, 153, 0.3);
+  transition: all 0.2s;
+  border-radius: 0.5rem;
+
+  &:hover {
+    background-color: rgba(144, 147, 153, 0.5);
+  }
+}
+
+
+.flip-list-move {
+  transition: transform 1s;
+}
+
+.flip-list-enter,
+.flip-list-leave-to {
+  opacity: 0;
+}
+
+.flip-list-enter-active {
+  transition: all 1s;
+}
+
+.flip-list-leave-active {
+  transition: all .8s;
+  transform: translateX(-100%);
+  position: absolute;
+}
+
+.enterTo {
+  animation: enterTo 1s forwards;
+}
+
+.leaveTo {
+  animation: leaveTo .8s;
+}
+
+@keyframes enterTo {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes leaveTo {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+    position: absolute;
+  }
+}
+
+
+
+
+
