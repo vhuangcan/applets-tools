@@ -101,60 +101,29 @@ app.on("ready", async () => {
 
 // 设置菜单栏
 function createMenu() {
-  // darwin表示macOS，针对macOS的设置
-  if (process.platform === "darwin") {
-    const template = [
-      {
-        label: "Wine",
-        submenu: [
-          {
-            role: "forcereload"
-          },
-          {
-            role: "about"
-          },
-          {
-            role: "quit"
-          }
-        ]
-      },
-      {
-        label: "编辑",
-        submenu: [
-          {label: "复制", accelerator: "CmdOrCtrl+C", selector: "copy:"},
-          {label: "粘贴", accelerator: "CmdOrCtrl+V", selector: "paste:"},
-        ]
-      },
-      {
-        label: '使用帮助',
-        submenu: [
-          {
-            label: "切换功能",
-            accelerator: "CmdOrCtrl+X",
-            click: () => {
-              sendStatusToWindow('switch')
-            }
-          },
-          {
-            label: "查看教程",
-            click: () => {
-              sendStatusToWindow('tutorial')
-            }
-          },
-          {
-            label: "功能介绍",
-            click: () => {
-              sendStatusToWindow('intro')
-            }
-          },
-        ]
-      }
-    ]
-    let menu = Menu.buildFromTemplate(template)
-    Menu.setApplicationMenu(menu)
-  } else {
-    // windows及linux系统
-    let menu = Menu.buildFromTemplate({
+  const template = [
+    {
+      label: "Wine",
+      submenu: [
+        {
+          role: "forcereload"
+        },
+        {
+          role: "about"
+        },
+        {
+          role: "quit"
+        }
+      ]
+    },
+    {
+      label: "编辑",
+      submenu: [
+        {label: "复制", accelerator: "CmdOrCtrl+C", selector: "copy:"},
+        {label: "粘贴", accelerator: "CmdOrCtrl+V", selector: "paste:"},
+      ]
+    },
+    {
       label: '使用帮助',
       submenu: [
         {
@@ -177,9 +146,10 @@ function createMenu() {
           }
         },
       ]
-    })
-    Menu.setApplicationMenu(menu)
-  }
+    }
+  ]
+  let menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
 }
 
 // Exit cleanly on request from parent process in development mode.
