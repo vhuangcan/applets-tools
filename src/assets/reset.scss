@@ -23,7 +23,8 @@ body {
   'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
   font-size: 13px;
   min-width: 980px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 body,
