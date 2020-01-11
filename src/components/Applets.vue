@@ -156,6 +156,7 @@ import util from 'util'
 import fs from 'fs'
 import path from 'path'
 import childProcess from 'child_process'
+import img from '@/assets/1.gif'
 
 export default {
   name: "Applets",
@@ -421,10 +422,14 @@ export default {
           })
     },
     /**
-     * 弹出使用教程
+     * 使用教程
      */
     handleTutorial() {
-
+      this.$alert(`<img src="${img}"/>`,
+          '使用教程', {
+            customClass: 'gif',
+            dangerouslyUseHTMLString: true
+          })
     },
     /**
      * 切换工具版本
@@ -537,13 +542,13 @@ export default {
         {
           label: "查看教程",
           click: () => {
-            this.handleIntro()
+            this.handleTutorial()
           }
         },
         {
           label: "功能介绍",
           click: () => {
-            this.handleTutorial()
+            this.handleIntro()
           }
         },
       ]
