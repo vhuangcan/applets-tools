@@ -12,12 +12,7 @@ module.exports = {
   pluginOptions: {
     electronBuilder: {
       builderOptions: {
-        publish: [
-          {
-            provider: "github",
-            private: true
-          }
-        ],
+        publish: ["github"],
         win: {
           icon: "./public/favicon.ico",
           target: ["nsis"]
@@ -34,8 +29,7 @@ module.exports = {
           shortcutName: "小程序便捷工具" // 图标名称
         },
         mac: {
-          icon: "./public/app.png",
-          // target: ["zip"]
+          icon: "./public/app.png"
         },
         productName: "小程序便捷工具",
         copyright: "CopyRight © 2019 huangcan"

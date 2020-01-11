@@ -227,6 +227,10 @@ export default {
       this.handleEmit().catch(err => {
         this.error = err
         this.upload = false
+        if (this.version === 2) {
+          // 出错关闭 headless chrome
+          this.closeBrowser(this.browser)
+        }
       })
     },
     /**
@@ -291,6 +295,7 @@ export default {
           headless: !this.isBrowser,
           // slowMo: 40
         })
+        this.browser = browser
         // 打开一个新的标签页
         let page = await browser.newPage()
         // 指定进入微信登录模式
@@ -372,7 +377,7 @@ export default {
             this.upload = false
             localStorage.setItem(`file${this.version}`, JSON.stringify(selectItem))
             // 关闭 headless chrome
-            await browser.close()
+            this.closeBrowser(browser)
           }
         }
         this.total = `一共有${selectItem.length}个小程序待处理`
@@ -463,6 +468,12 @@ export default {
       const el = document.querySelector(`[data-index="${index}"]`)
       el.click()
       el.addEventListener('change', handleChange)
+    },
+    /**
+     * 关闭浏览器
+     */
+    async closeBrowser(browser) {
+      return await browser.close()
     }
   },
   mounted() {
@@ -561,6 +572,12 @@ export default {
         window: remote.getCurrentWindow()
       })
     }, false)
+    window.addEventListener('beforeunload',()=>{
+      if (this.version === 2) {
+        // 这是为了防止程序以外终止但是headless chrome 依旧在后台运行。所以强制执行终止headless chrome
+        this.closeBrowser(this.browser)
+      }
+    })
   }
 }
 </script>

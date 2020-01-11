@@ -5,7 +5,7 @@ import {
   createProtocol,
   installVueDevtools
 } from "vue-cli-plugin-electron-builder/lib"
-import { autoUpdater } from "electron-updater"
+import {autoUpdater} from "electron-updater"
 
 autoUpdater.autoDownload = true
 
