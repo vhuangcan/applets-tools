@@ -11,11 +11,13 @@
     "electron:build": "vue-cli-service electron:build",
     "electron:serve": "vue-cli-service electron:serve",
     "postinstall": "electron-builder install-app-deps",
-    "postuninstall": "electron-builder install-app-deps"
+    "postuninstall": "electron-builder install-app-deps",
+    "publish": "npm run electron:build -- -p always"
   },
   "main": "background.js",
   "dependencies": {
     "core-js": "^3.4.4",
+    "electron-updater": "^4.2.0",
     "element-ui": "^2.4.5",
     "puppeteer-core": "^2.0.0",
     "vue": "^2.6.10",
@@ -32,5 +34,6 @@
     "vue-cli-plugin-electron-builder": "^1.4.4",
     "vue-cli-plugin-element": "^1.0.1",
     "vue-template-compiler": "^2.6.10"
-  }
+  },
+  "repository": "github:vhuangcan/applets-tools"
 }

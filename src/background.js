@@ -1,20 +1,24 @@
-"use strict";
+"use strict"
 
-import { app, protocol, BrowserWindow,Menu } from "electron";
+import {app, protocol, BrowserWindow, Menu} from "electron"
 import {
   createProtocol,
   installVueDevtools
-} from "vue-cli-plugin-electron-builder/lib";
-const isDevelopment = process.env.NODE_ENV !== "production";
+} from "vue-cli-plugin-electron-builder/lib"
+import { autoUpdater } from "electron-updater"
+
+autoUpdater.autoDownload = true
+
+const isDevelopment = process.env.NODE_ENV !== "production"
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let win;
+let win
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
-  { scheme: "app", privileges: { secure: true, standard: true } }
-]);
+  {scheme: "app", privileges: {secure: true, standard: true}}
+])
 
 function createWindow() {
   // Create the browser window.
@@ -25,22 +29,37 @@ function createWindow() {
       nodeIntegration: true,
       webSecurity: false
     }
-  });
+  })
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
-    win.loadURL(process.env.WEBPACK_DEV_SERVER_URL);
-    if (!process.env.IS_TEST) win.webContents.openDevTools();
+    win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
+    if (!process.env.IS_TEST) win.webContents.openDevTools()
   } else {
-    createProtocol("app");
+    createProtocol("app")
     // Load the index.html when not in development
-    win.loadURL("app://./index.html");
+    win.loadURL("app://./index.html")
+    autoUpdater.checkForUpdatesAndNotify()
   }
-
   win.on("closed", () => {
-    win = null;
-  });
-  createMenu();
+    win = null
+  })
+  createMenu()
+}
+
+autoUpdater.on('update-downloaded', info => {
+  sendStatusToWindow('downloaded')
+  setTimeout(() => {
+    autoUpdater.quitAndInstall()
+  }, 1000)
+})
+
+autoUpdater.on('update-available', info => {
+  sendStatusToWindow('updating')
+})
+
+function sendStatusToWindow(type) {
+  win.webContents.send('message', type)
 }
 
 // Quit when all windows are closed.
@@ -48,17 +67,17 @@ app.on("window-all-closed", () => {
   // On macOS it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform !== "darwin") {
-    app.quit();
+    app.quit()
   }
-});
+})
 
 app.on("activate", () => {
   // On macOS it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (win === null) {
-    createWindow();
+    createWindow()
   }
-});
+})
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -77,8 +96,8 @@ app.on("ready", async () => {
     //   console.error('Vue Devtools failed to install:', e.toString())
     // }
   }
-  createWindow();
-});
+  createWindow()
+})
 
 // 设置菜单栏
 function createMenu() {
@@ -86,7 +105,7 @@ function createMenu() {
   if (process.platform === "darwin") {
     const template = [
       {
-        label: "wine",
+        label: "Wine",
         submenu: [
           {
             role: "forcereload"
@@ -100,18 +119,66 @@ function createMenu() {
         ]
       },
       {
-        label: "Edit",
+        label: "编辑",
         submenu: [
-          { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
-          { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
+          {label: "复制", accelerator: "CmdOrCtrl+C", selector: "copy:"},
+          {label: "粘贴", accelerator: "CmdOrCtrl+V", selector: "paste:"},
+        ]
+      },
+      {
+        label: '使用帮助',
+        submenu: [
+          {
+            label: "切换功能",
+            accelerator: "CmdOrCtrl+X",
+            click: () => {
+              sendStatusToWindow('switch')
+            }
+          },
+          {
+            label: "查看教程",
+            click: () => {
+              sendStatusToWindow('tutorial')
+            }
+          },
+          {
+            label: "功能介绍",
+            click: () => {
+              sendStatusToWindow('intro')
+            }
+          },
         ]
       }
-    ];
-    let menu = Menu.buildFromTemplate(template);
-    Menu.setApplicationMenu(menu);
+    ]
+    let menu = Menu.buildFromTemplate(template)
+    Menu.setApplicationMenu(menu)
   } else {
     // windows及linux系统
-    Menu.setApplicationMenu(null);
+    let menu = Menu.buildFromTemplate({
+      label: '使用帮助',
+      submenu: [
+        {
+          label: "切换功能",
+          accelerator: "CmdOrCtrl+X",
+          click: () => {
+            sendStatusToWindow('switch')
+          }
+        },
+        {
+          label: "查看教程",
+          click: () => {
+            sendStatusToWindow('tutorial')
+          }
+        },
+        {
+          label: "功能介绍",
+          click: () => {
+            sendStatusToWindow('intro')
+          }
+        },
+      ]
+    })
+    Menu.setApplicationMenu(menu)
   }
 }
 
@@ -120,13 +187,13 @@ if (isDevelopment) {
   if (process.platform === "win32") {
     process.on("message", data => {
       if (data === "graceful-exit") {
-        app.quit();
+        app.quit()
       }
-    });
+    })
   } else {
     process.on("SIGTERM", () => {
-      app.quit();
-    });
+      app.quit()
+    })
   }
 }
 

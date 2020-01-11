@@ -8,13 +8,16 @@
 // vue.config.js
 
 module.exports = {
-  devServer: {
-    open: true
-  },
   publicPath: process.env.NODE_ENV === "production" ? "/" : "/",
   pluginOptions: {
     electronBuilder: {
       builderOptions: {
+        publish: [
+          {
+            provider: "github",
+            private: true
+          }
+        ],
         win: {
           icon: "./public/favicon.ico",
           target: ["nsis"]
@@ -35,7 +38,7 @@ module.exports = {
           // target: ["zip"]
         },
         productName: "小程序便捷工具",
-        copyright: "copyRight © 2019 huangcan"
+        copyright: "CopyRight © 2019 huangcan"
       }
     }
   }

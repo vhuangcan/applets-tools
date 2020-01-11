@@ -5,12 +5,12 @@
 </template>
 
 <script>
-import Applets from "./components/Applets";
+import Applets from "./components/Applets"
 
 export default {
   name: "app",
   components: {
     Applets
   }
-};
+}
 </script>

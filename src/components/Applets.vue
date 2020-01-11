@@ -6,14 +6,24 @@
     <transition-group tag="div" class="box" name="flip-list" mode="out-in">
       <div class="item" key="11">
         <fragment v-if="version === 1">
-          <el-input placeholder="windows下请输入小程序cli的地址,一定要加上双引号" v-model="cli" clearable class="cli"/>
+          <el-input
+            placeholder="windows下请输入小程序cli的地址,一定要加上双引号"
+            v-model="cli"
+            clearable
+            class="cli"
+          />
         </fragment>
         <fragment v-else>
           <el-radio-group v-model="type">
             <el-radio :label="1">提交代码到审核</el-radio>
             <el-radio :label="2">审核通过代码提交上线</el-radio>
           </el-radio-group>
-          <el-checkbox v-model="isBrowser" style="margin-left: 30px">开启代码提交全过程(可选)</el-checkbox>
+          <el-checkbox
+            v-model="isBrowser"
+            style="margin-left: 30px"
+          >
+            开启代码提交全过程(可选)
+          </el-checkbox>
         </fragment>
       </div>
       <el-table
@@ -29,36 +39,70 @@
           width="30"
         />
         <fragment v-if="version === 1">
-          <el-table-column width="auto">
+          <el-table-column width="auto" label="全选">
             <template slot-scope="scope">
-              <el-input clearable placeholder="小程序名称" v-model="scope.row.appletsName"/>
+              <el-input
+                clearable
+                placeholder="小程序名称"
+                v-model="scope.row.appletsName"
+              />
             </template>
           </el-table-column>
           <el-table-column width="auto">
             <template slot-scope="scope">
-              <el-input clearable placeholder="文件夹地址" v-model="scope.row.path"/>
+              <div class="input">
+                <input
+                  class="visible"
+                  :data-index="scope.$index"
+                  type="file"
+                  placeholder="文件夹地址"
+                  webkitdirectory
+                  directory
+                />
+                <el-input
+                  @click.native="selectPath(scope.$index,scope.row)"
+                  placeholder="文件夹地址"
+                  v-model="scope.row.path"
+                />
+              </div>
             </template>
           </el-table-column>
           <el-table-column width="auto">
             <template slot-scope="scope">
-              <el-input clearable placeholder="版本号" v-model="scope.row.version"/>
+              <el-input
+                clearable
+                placeholder="版本号"
+                v-model="scope.row.version"
+              />
             </template>
           </el-table-column>
           <el-table-column width="auto">
             <template slot-scope="scope">
-              <el-input clearable placeholder="更新内容" v-model="scope.row.info"/>
+              <el-input
+                clearable
+                placeholder="更新内容"
+                v-model="scope.row.info"
+              />
             </template>
           </el-table-column>
         </fragment>
         <fragment v-else>
-          <el-table-column width="auto" class-name="enterTo">
+          <el-table-column width="auto" label="全选" class-name="enterTo">
             <template slot-scope="scope">
-              <el-input clearable placeholder="微信公众平台用户名" v-model="scope.row.user"/>
+              <el-input
+                clearable
+                placeholder="微信公众平台用户名"
+                v-model="scope.row.user"
+              />
             </template>
           </el-table-column>
           <el-table-column width="auto" class-name="enterTo">
             <template slot-scope="scope">
-              <el-input clearable placeholder="微信公众平台密码" v-model="scope.row.pwd"/>
+              <el-input
+                clearable
+                placeholder="微信公众平台密码"
+                v-model="scope.row.pwd"
+              />
             </template>
           </el-table-column>
         </fragment>
@@ -102,15 +146,16 @@
         {{error}}
       </p>
     </div>
-    <div class="use">
-      <span @click="switchVersion">切换版本</span>
-      <span @click="handleIntro">功能介绍</span>
-      <span @click="handleTutorial">使用教程</span>
-    </div>
   </div>
 </template>
 
 <script>
+import puppeteer from 'puppeteer-core'
+import {remote, ipcRenderer} from 'electron'
+import util from 'util'
+import fs from 'fs'
+import path from 'path'
+import childProcess from 'child_process'
 
 export default {
   name: "Applets",
@@ -178,7 +223,10 @@ export default {
     uploadCode() {
       // 清空状态
       this.clearStatus()
-      this.handleEmit()
+      this.handleEmit().catch(err => {
+        this.error = err
+        this.upload = false
+      })
     },
     /**
      * 处理操作流程
@@ -188,10 +236,18 @@ export default {
       this.upload = true
       const version = this.version
       const selectItem = this[`multipleSelection${version}`]
+      if (selectItem.length === 0) {
+        this.$message({
+          showClose: true,
+          message: '请勾选需要执行的项~！🙂',
+          type: 'error'
+        })
+        this.upload = false
+        return
+      }
       let timeStamp
       if (version === 1) {
-        const util = require('util')
-        const exec = util.promisify(require('child_process').exec)
+        const exec = util.promisify(childProcess.exec)
         const cli = this.cli ? this.cli : '/Applications/wechatwebdevtools.app/Contents/MacOS/cli'
         const promise = async (cli) => await exec(cli)
         const automationUpload = async (obj, i) => {
@@ -200,7 +256,7 @@ export default {
           }
           this.tips = `当前${obj.appletsName}小程序的代码正在上传`
           // 上传代码
-          await promise(`${cli} -u ${obj.version}@${obj.path} --upload-desc ${obj.info} --upload-info-output ${obj.path}/info.json`)
+          await promise(`${cli} -u ${obj.version}@${obj.path} --upload-desc ${obj.info}`)
 
           this.tips = `当前${obj.appletsName}小程序的代码已上传完毕`
 
@@ -219,14 +275,8 @@ export default {
             return automationUpload(next, i + 1)
           }, Promise.resolve())
         }
-        sequence().catch(err => {
-          this.error = err
-          this.upload = false
-        })
+        return sequence()
       } else {
-        const puppeteer = require('puppeteer-core')
-        const path = require('path')
-        const fs = require('fs')
         const browser = await puppeteer.launch({
           // 内置浏览器
           executablePath: this._getDefaultOsPath(),
@@ -242,7 +292,7 @@ export default {
         })
         // 打开一个新的标签页
         let page = await browser.newPage()
-        // 指定进入的地址
+        // 指定进入微信登录模式
         const url = 'https://mp.weixin.qq.com'
         // 进入指定网址，networkidle0 参数将指定请求连接为0的时候才完成导航，也就是网页加载完毕。
         await page.goto(url, {waitUntil: 'networkidle0'})
@@ -295,6 +345,10 @@ export default {
             await page.click("[extclass='muti_msg_dialog'] .weui-desktop-btn_primary")
             await page.waitFor(2000)
             const pages = (await browser.pages())[2]
+            const text = await pages.$('textarea')
+            await text.evaluate(node => {
+              node.value = ''
+            })
             await pages.type('textarea', 'release update')
             await pages.click('.tool_bar')
             await pages.waitFor(1000)
@@ -321,13 +375,10 @@ export default {
           }
         }
         this.total = `一共有${selectItem.length}个小程序待处理`
-        selectItem.reduce(async (prev, next, i) => {
+        return selectItem.reduce(async (prev, next, i) => {
           await prev
           return automation(next.user, next.pwd, i + 1)
-        }, Promise.resolve()).catch(err => {
-          this.error = err
-          this.upload = false
-        })
+        }, Promise.resolve())
       }
     },
     /**
@@ -378,7 +429,7 @@ export default {
     /**
      * 切换工具版本
      */
-    switchVersion() {
+    switchFun() {
       this.version = this.version === 1 ? 2 : 1
       this.clearStatus()
     },
@@ -390,6 +441,23 @@ export default {
       this.total = ''
       this.tips = ''
       this.img = ''
+    },
+    /**
+     * 选择路径
+     * @param index
+     * @param row
+     */
+    selectPath(index, row) {
+      const handleChange = () => {
+        const {name, path} = el.files[0]
+        row.appletsName = name
+        row.path = path
+        el.removeEventListener('change', handleChange)
+        el.value = '' // 这个很重要。不然就会导致后续再次重复选取同样文件夹change事件不会被触发
+      }
+      const el = document.querySelector(`[data-index="${index}"]`)
+      el.click()
+      el.addEventListener('change', handleChange)
     }
   },
   mounted() {
@@ -425,8 +493,69 @@ export default {
       {
         user: '',
         pwd: ''
+      },
+      {
+        user: '',
+        pwd: ''
       }
     ]
+    ipcRenderer.on('message', (event, type) => {
+      switch (type) {
+        case 'updating':
+          this.$notify({
+            type: 'info',
+            message: '更新中',
+            duration: 0
+          })
+          break
+        case 'downloaded':
+          this.$notify({
+            type: 'success',
+            message: '更新完成~即将重启'
+          })
+          break
+        case 'switch':
+          this.switchFun()
+          break
+        case 'intro':
+          this.handleIntro()
+          break
+        case 'tutorial':
+          this.handleTutorial()
+          break
+      }
+    })
+    const {Menu} = remote
+    const createContextMenu = () => {
+      const contextTemplate = [
+        {
+          label: "切换功能",
+          click: () => {
+            this.switchFun()
+          }
+        },
+        {
+          label: "查看教程",
+          click: () => {
+            this.handleIntro()
+          }
+        },
+        {
+          label: "功能介绍",
+          click: () => {
+            this.handleTutorial()
+          }
+        },
+      ]
+      return Menu.buildFromTemplate(contextTemplate)
+    }
+    window.addEventListener('contextmenu', (event) => {
+      event.preventDefault()
+      const contextMenu = createContextMenu()
+      contextMenu.popup({
+        window: remote.getCurrentWindow()
+      })
+    }, false)
   }
 }
 </script>
@@ -464,7 +593,7 @@ export default {
       border-bottom: 0 !important;
     }
 
-    tr:hover {
+    .hover-row {
       td {
         background: transparent !important;
       }
@@ -512,21 +641,17 @@ export default {
     margin-top: 30px;
   }
 
-  .use {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
+  .input {
+    position: relative;
 
-
-    span {
-      transition: all .3s;
-      margin-right: 10px;
-      cursor: pointer;
-
-      &:hover {
-        color: #F56C6C
-      }
+    .visible {
+      opacity: 0;
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 100%;
     }
   }
+
 }
 </style>
