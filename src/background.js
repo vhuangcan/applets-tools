@@ -103,7 +103,7 @@ app.on("ready", async () => {
 function createMenu() {
   const template = [
     {
-      label: "Wine",
+      label: "H",
       submenu: [
         {
           role: "forcereload"

@@ -100,6 +100,7 @@
             <template slot-scope="scope">
               <el-input
                 clearable
+                type="password"
                 placeholder="微信公众平台密码"
                 v-model="scope.row.pwd"
               />
@@ -125,8 +126,21 @@
         </el-table-column>
       </el-table>
       <div class="btn-wrap" key="btn">
-        <el-button type="danger" :loading="upload" key="10" @click="uploadCode">提交代码</el-button>
-        <el-button type="warning" key="12" @click="clearStore">清除记录</el-button>
+        <el-button
+          type="danger"
+          :loading="upload"
+          key="10"
+          @click="uploadCode"
+        >
+          提交代码
+        </el-button>
+        <el-button
+          type="warning"
+          key="12"
+          @click="clearStore"
+        >
+          清除记录
+        </el-button>
       </div>
     </transition-group>
     <div class="tips">

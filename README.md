@@ -1,13 +1,19 @@
 # 使用教程
 
+代码上传+提交审核
+
 ![img](/src/assets/1.gif)
+
+审核通过代码提交发布
+
+![img](/src/assets/2.gif)
 
 ### 项目安装
 ```
 npm install
 ```
 
-### 项目开发热重载
+### 项目开发
 ```
 npm run electron:serve
 ```
