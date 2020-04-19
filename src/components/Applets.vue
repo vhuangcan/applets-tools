@@ -360,6 +360,13 @@ export default {
             const el = await page.$$('.code_version_dev .code_version_log_ft')
             await el[el.length - 1].click()
             await page.waitFor(1000)
+            // 有微信自己插件的情况下
+            const wxPlugin = await page.$('[extclass="dialog_component"]  .weui-desktop-btn_primary')
+            if (wxPlugin) {
+              await wxPlugin.click('[extclass="dialog_component"]  .weui-desktop-btn_primary')
+            }
+            await page.waitForSelector('.weui-desktop-icon-checkbox')
+            await page.waitFor(1000)
             await page.click('.weui-desktop-icon-checkbox')
             await page.click('.code_submit_dialog .weui-desktop-btn_primary')
             await page.click("[extclass='muti_msg_dialog'] .weui-desktop-btn_primary")
@@ -372,7 +379,7 @@ export default {
             await pages.type('textarea', 'release update')
             await pages.click('.tool_bar')
             await pages.waitFor(1000)
-            await pages.close()
+            // await pages.close()
           }
           await page.evaluate(() => {
             // 隐藏节点的click必须这么触发。page.click()无效
@@ -586,7 +593,7 @@ export default {
         window: remote.getCurrentWindow()
       })
     }, false)
-    window.addEventListener('beforeunload',()=>{
+    window.addEventListener('beforeunload', () => {
       if (this.version === 2) {
         // 这是为了防止程序以外终止但是headless chrome 依旧在后台运行。所以强制执行终止headless chrome
         this.closeBrowser(this.browser)

@@ -53,6 +53,7 @@ windows平台使用代码上传功能需要自己去找到微信开发者工具�
 ![img](/src/assets/3.png)
 
 ### 项目所用技术的开发文档
+
 [Vue Configuration Reference](https://cli.vuejs.org/config/).
 
 [Puppeteer Configuration Reference](https://pptr.dev/).
