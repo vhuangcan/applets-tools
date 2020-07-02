@@ -1,7 +1,7 @@
 <template>
   <div class="applets">
     <h3 class="title">
-      {{version === 1? '小程序代码上传' : '小程序代码提交审核'}}
+      {{version === 1? '小程序代码上传' : '小程序代码提交审核与生成小程序二维码'}}
     </h3>
     <transition-group tag="div" class="box" name="flip-list" mode="out-in">
       <div class="item" key="11">
@@ -17,6 +17,7 @@
           <el-radio-group v-model="type">
             <el-radio :label="1">提交代码到审核</el-radio>
             <el-radio :label="2">审核通过代码提交上线</el-radio>
+            <el-radio :label="3">生成小程序二维码</el-radio>
           </el-radio-group>
           <el-checkbox
             v-model="isBrowser"
@@ -106,6 +107,15 @@
               />
             </template>
           </el-table-column>
+          <el-table-column v-if="type === 3" width="auto" class-name="enterTo">
+            <template slot-scope="scope">
+              <el-input
+                clearable
+                placeholder="小程序任意页面路径"
+                v-model="scope.row.path"
+              />
+            </template>
+          </el-table-column>
         </fragment>
         <el-table-column width="73" class-name="enterTo">
           <template slot-scope="scope">
@@ -135,6 +145,7 @@
           提交代码
         </el-button>
         <el-button
+          :disabled="upload"
           type="warning"
           key="12"
           @click="clearStore"
@@ -168,6 +179,7 @@ import puppeteer from 'puppeteer-core'
 import {remote, ipcRenderer} from 'electron'
 import util from 'util'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 import childProcess from 'child_process'
 import img from '@/assets/1.gif'
@@ -265,10 +277,10 @@ export default {
         return
       }
       let timeStamp
+      const exec = util.promisify(childProcess.exec)
+      const promise = async (cli) => await exec(cli)
       if (version === 1) {
-        const exec = util.promisify(childProcess.exec)
         const cli = this.cli ? this.cli : '/Applications/wechatwebdevtools.app/Contents/MacOS/cli'
-        const promise = async (cli) => await exec(cli)
         const automationUpload = async (obj, i) => {
           if (i === 1) {
             timeStamp = Date.now()
@@ -317,6 +329,7 @@ export default {
         // 进入指定网址，networkidle0 参数将指定请求连接为0的时候才完成导航，也就是网页加载完毕。
         await page.goto(url, {waitUntil: 'networkidle0'})
         const automation = async (user, pwd, i) => {
+          await page.click('.login__type__container__scan .login__type__container__select-type')
           await page.type('input[name="account"]', user)
           await page.type('input[name="password"]', pwd)
           await page.click('.btn_login')
@@ -380,6 +393,32 @@ export default {
             await pages.click('.tool_bar')
             await pages.waitFor(1000)
             // await pages.close()
+          } else if (this.type === 3) {
+            // 此时生成小程序二维
+            await page.evaluate(() => {
+              // 隐藏节点的click必须这么触发。page.click()无效
+              document.querySelector('[data-msgid="生成小程序码"]').click()
+            })
+            await page.waitForNavigation()
+            const userName = await page.$('.user_name')
+            const nameTxt = await userName.evaluate(node => node.innerText)
+            await page.type('input', nameTxt)
+            await page.click('.weui-desktop-search__btn')
+            await page.waitFor(1000)
+            await page.click('.weui-desktop-btn_primary')
+            await page.type('input', selectItem[i - 1].path)
+            await page.click('.weui-desktop-btn_primary')
+            await page.waitForSelector('.image-wrp')
+            const ewm = await page.$('.image-wrp img')
+            const desktop = `${os.homedir()}/Desktop`
+            const isDirectory = fs.existsSync(`${desktop}/ewm`)
+            if (!isDirectory) {
+              await promise(`mkdir ${desktop}/ewm`)
+            }
+            timeStamp = Date.now()
+            await ewm.screenshot({
+              path: `${desktop}/ewm/${timeStamp}.png`
+            })
           }
           await page.evaluate(() => {
             // 隐藏节点的click必须这么触发。page.click()无效
@@ -389,7 +428,7 @@ export default {
           await page.waitForNavigation()
           page = (await browser.pages())[1]
           this.tips = `当前第${i}个小程序处理完成`
-          if (!this.isBrowser) {
+          if (!this.isBrowser && this.type !== 3) {
             fs.unlinkSync(path.resolve(__dirname, '..', '..', `./${timeStamp}.png`))
           }
           if (i === selectItem.length) {
@@ -402,6 +441,7 @@ export default {
           }
         }
         this.total = `一共有${selectItem.length}个小程序待处理`
+
         return selectItem.reduce(async (prev, next, i) => {
           await prev
           return automation(next.user, next.pwd, i + 1)
@@ -432,7 +472,8 @@ export default {
       } else {
         this.file2.push({
           user: '',
-          pwd: ''
+          pwd: '',
+          path: ''
         })
       }
 
@@ -521,19 +562,23 @@ export default {
     this.file2 = JSON.parse(localStorage.getItem('file2')) || [
       {
         user: '',
-        pwd: ''
+        pwd: '',
+        path: ''
       },
       {
         user: '',
-        pwd: ''
+        pwd: '',
+        path: ''
       },
       {
         user: '',
-        pwd: ''
+        pwd: '',
+        path: ''
       },
       {
         user: '',
-        pwd: ''
+        pwd: '',
+        path: ''
       }
     ]
     ipcRenderer.on('message', (event, type) => {
@@ -595,7 +640,7 @@ export default {
     }, false)
     window.addEventListener('beforeunload', () => {
       if (this.version === 2) {
-        // 这是为了防止程序以外终止但是headless chrome 依旧在后台运行。所以强制执行终止headless chrome
+        // 这是为了防止程序意外终止但是headless chrome 依旧在后台运行。所以强制执行终止headless chrome
         this.closeBrowser(this.browser)
       }
     })
