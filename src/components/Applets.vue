@@ -1,7 +1,7 @@
 <template>
   <div class="applets">
     <h3 class="title">
-      {{version === 1? '小程序代码上传' : '小程序代码提交审核与生成小程序二维码'}}
+      {{version === 1? '小程序代码上传' : '小程序代码提交审核与生成小程序页面二维码'}}
     </h3>
     <transition-group tag="div" class="box" name="flip-list" mode="out-in">
       <div class="item" key="11">
@@ -17,7 +17,8 @@
           <el-radio-group v-model="type">
             <el-radio :label="1">提交代码到审核</el-radio>
             <el-radio :label="2">审核通过代码提交上线</el-radio>
-            <el-radio :label="3">生成小程序二维码</el-radio>
+            <el-radio :label="3">生成小程序页面二维码</el-radio>
+            <el-radio :label="4">生成小程序体验二维码</el-radio>
           </el-radio-group>
           <el-checkbox
             v-model="isBrowser"
@@ -49,7 +50,8 @@
               />
             </template>
           </el-table-column>
-          <el-table-column width="auto">
+          <el-table-column width="auto"
+          >
             <template slot-scope="scope">
               <div class="input">
                 <input
@@ -57,7 +59,6 @@
                   :data-index="scope.$index"
                   type="file"
                   placeholder="文件夹地址"
-                  webkitdirectory
                   directory
                 />
                 <el-input
@@ -102,6 +103,7 @@
               <el-input
                 clearable
                 type="password"
+                show-password
                 placeholder="微信公众平台密码"
                 v-model="scope.row.pwd"
               />
@@ -253,10 +255,10 @@ export default {
       this.handleEmit().catch(err => {
         this.error = err
         this.upload = false
-        if (this.version === 2) {
-          // 出错关闭 headless chrome
-          this.closeBrowser(this.browser)
-        }
+        // if (this.version === 2) {
+        //   // 出错关闭 headless chrome
+        //   this.closeBrowser(this.browser)
+        // }
       })
     },
     /**
@@ -287,7 +289,7 @@ export default {
           }
           this.tips = `当前${obj.appletsName}小程序的代码正在上传`
           // 上传代码
-          await promise(`${cli} -u ${obj.version}@${obj.path} --upload-desc ${obj.info}`)
+          await promise(`${cli} upload --project ${obj.path} -v ${obj.version} -d ${obj.info}`)
 
           this.tips = `当前${obj.appletsName}小程序的代码已上传完毕`
 
@@ -308,6 +310,7 @@ export default {
         }
         return sequence()
       } else {
+
         const browser = await puppeteer.launch({
           // 内置浏览器
           executablePath: this._getDefaultOsPath(),
@@ -321,6 +324,7 @@ export default {
           headless: !this.isBrowser,
           // slowMo: 40
         })
+
         this.browser = browser
         // 打开一个新的标签页
         let page = await browser.newPage()
@@ -328,8 +332,11 @@ export default {
         const url = 'https://mp.weixin.qq.com'
         // 进入指定网址，networkidle0 参数将指定请求连接为0的时候才完成导航，也就是网页加载完毕。
         await page.goto(url, {waitUntil: 'networkidle0'})
+
         const automation = async (user, pwd, i) => {
-          await page.click('.login__type__container__scan .login__type__container__select-type')
+          await page.evaluate(() => {
+            document.querySelector('.login__type__container__scan .login__type__container__select-type').click()
+          })
           await page.type('input[name="account"]', user)
           await page.type('input[name="password"]', pwd)
           await page.click('.btn_login')
@@ -349,14 +356,19 @@ export default {
           }
           await page.waitForSelector('#menuBar') // 等待扫码成功后，当前页面出现这个选择器后执行下一步。
           this.tips = '登录成功~！操作中...'
+          // 将所有弹框全部隐藏
+          await page.evaluate(() => {
+            const mask = document.querySelectorAll('.weui-desktop-dialog_simple')
+            mask.forEach(v => v.style.dispaly = 'none')
+          })
           await page.goto(`${url}/wxamp/wacodepage/getcodepage?${page.url().split('?')[1]}`, {waitUntil: 'networkidle0'})
           if (this.type === 2) {
             // 此时将代码提交上线
             await page.click('.user_status .weui-desktop-popover__wrp')
-            const el = await page.$$('.col_main_inner .self-weui-modal .weui-desktop-btn_primary')
+            const el = await page.$$('.mr.weui-desktop-btn.weui-desktop-btn_primary')
             await el[el.length - 2].click()
             await page.waitForSelector('.weui-desktop-qrcheck__img')
-            await page.waitFor(1000)
+            await page.waitFor(4000)
             if (!this.isBrowser) {
               const imgEl = await page.$('.weui-desktop-qrcheck__img')
               fs.unlinkSync(path.resolve(__dirname, '..', '..', `./${timeStamp}.png`))
@@ -367,7 +379,7 @@ export default {
               this.img = `file://${path.resolve(__dirname, '..', '..', `./${timeStamp}.png`)}`
               this.tips = '继续扫码确认发布代码~'
             }
-            await page.waitForSelector('.empty_tips')
+            await page.waitForSelector('.empty_box')
           } else if (this.type === 1) {
             // 此时将代码提交审核
             const el = await page.$$('.code_version_dev .code_version_log_ft')
@@ -419,6 +431,32 @@ export default {
             await ewm.screenshot({
               path: `${desktop}/ewm/${timeStamp}.png`
             })
+          } else if (this.type === 4) {
+            // 生成体验版小程序二维码
+            const el = await page.$('.status_tag.info')
+            if (el) {
+              await page.click('.status_tag.info')
+            } else {
+              const el = await page.$$('.code_version_dev .code_version_log_ft .arrowBtn')
+              await el[el.length - 1].click()
+              await page.waitFor(1000)
+              await page.click('.weui-desktop-dropdown__list li:first-child')
+              await page.waitFor(1000)
+              await page.click('.server_url_dialog button.weui-desktop-btn_primary')
+            }
+            // await page.waitForSelector('.pic_code_qrcode')
+            await page.waitFor(1000)
+            const ewm = await page.$('.pic_code_qrcode')
+            const desktop = `${os.homedir()}/Desktop`
+            const isDirectory = fs.existsSync(`${desktop}/ewm`)
+            if (!isDirectory) {
+              await promise(`mkdir ${desktop}/ewm`)
+            }
+            const userName = await page.$('.user_name')
+            const name = await userName.evaluate(node => node.innerText)
+            await ewm.screenshot({
+              path: `${desktop}/ewm/${name}.png`
+            })
           }
           await page.evaluate(() => {
             // 隐藏节点的click必须这么触发。page.click()无效
@@ -440,6 +478,7 @@ export default {
             this.closeBrowser(browser)
           }
         }
+
         this.total = `一共有${selectItem.length}个小程序待处理`
 
         return selectItem.reduce(async (prev, next, i) => {
@@ -448,6 +487,7 @@ export default {
         }, Promise.resolve())
       }
     },
+
     /**
      * 删除
      * @param index

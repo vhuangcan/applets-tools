@@ -33,7 +33,7 @@ npm run electron:build
 ### 遇到的问题
 ```
  npm install 安装完依赖后运行项目会出现需要安装ws的提示
- 安装ws后去node_modules找到puppeteer-core里的package.json。
+ 去node_modules找到puppeteer-core里的package.json。
  修改配置里ws的路径为./node_modules/ws/index。
  不然puppeteer无法正常使用。
 ```
