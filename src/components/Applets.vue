@@ -12,6 +12,9 @@
             clearable
             class="cli"
           />
+          <el-checkbox v-model="isMultiple" class="mutiple">
+            启用批量读取文件夹路径功能
+          </el-checkbox>
         </fragment>
         <fragment v-else>
           <el-radio-group v-model="type">
@@ -26,6 +29,20 @@
           >
             开启代码提交全过程(可选)
           </el-checkbox>
+          <div class="input export">
+            <input
+              class="visible"
+              type="file"
+              ref="excel"
+              @change="exportExcel"
+            />
+            <el-button
+              round
+              type="success"
+            >
+              导入excel
+            </el-button>
+          </div>
         </fragment>
       </div>
       <el-table
@@ -50,16 +67,17 @@
               />
             </template>
           </el-table-column>
-          <el-table-column width="auto"
-          >
+          <el-table-column width="auto">
             <template slot-scope="scope">
               <div class="input">
                 <input
                   class="visible"
                   :data-index="scope.$index"
                   type="file"
+                  multiple
                   placeholder="文件夹地址"
-                  directory
+                  allowdirs
+                  webkitdirectory
                 />
                 <el-input
                   @click.native="selectPath(scope.$index,scope.row)"
@@ -184,10 +202,14 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import childProcess from 'child_process'
+import xlsx from 'node-xlsx'
 import img from '@/assets/1.gif'
+
+const slash = os.platform() === 'darwin' ? '/' : '\\'
 
 export default {
   name: "Applets",
+
   data() {
     return {
       multipleSelection1: [],
@@ -203,8 +225,10 @@ export default {
       img: '',
       version: 1,
       cli: '',
+      isMultiple: false
     }
   },
+
   methods: {
     /**
      * 使用内置chrome浏览器
@@ -229,19 +253,22 @@ export default {
      * 清除记录
      */
     clearStore() {
-      const clearArr = (arr) => {
-        arr.forEach((obj) => {
-          for (let key in obj) {
-            obj[key] = ''
-          }
-        })
-      }
       if (this.version === 1) {
-        clearArr(this.multipleSelection1)
+        this.multipleSelection1 = []
+        this.file1 = [{
+          appletsName: '',
+          path: '',
+          version: '',
+          info: ''
+        }]
         localStorage.removeItem('file1')
         localStorage.removeItem('cli')
       } else {
-        clearArr(this.multipleSelection2)
+        this.multipleSelection2 = []
+        this.file2 = [{
+          user: '',
+          pwd: ''
+        }]
         localStorage.removeItem('file2')
       }
       this.clearStatus()
@@ -255,10 +282,10 @@ export default {
       this.handleEmit().catch(err => {
         this.error = err
         this.upload = false
-        // if (this.version === 2) {
-        //   // 出错关闭 headless chrome
-        //   this.closeBrowser(this.browser)
-        // }
+        if (this.version > 2) {
+          // 出错关闭 headless chrome
+          this.closeBrowser(this.browser)
+        }
       })
     },
     /**
@@ -289,7 +316,7 @@ export default {
           }
           this.tips = `当前${obj.appletsName}小程序的代码正在上传`
           // 上传代码
-          await promise(`${cli} upload --project ${obj.path} -v ${obj.version} -d ${obj.info}`)
+          await promise(`${cli} upload --project ${obj.path} -v ${obj.version} -d ${obj.info} `)
 
           this.tips = `当前${obj.appletsName}小程序的代码已上传完毕`
 
@@ -310,7 +337,6 @@ export default {
         }
         return sequence()
       } else {
-
         const browser = await puppeteer.launch({
           // 内置浏览器
           executablePath: this._getDefaultOsPath(),
@@ -324,7 +350,6 @@ export default {
           headless: !this.isBrowser,
           // slowMo: 40
         })
-
         this.browser = browser
         // 打开一个新的标签页
         let page = await browser.newPage()
@@ -381,9 +406,10 @@ export default {
             }
             await page.waitForSelector('.empty_box')
           } else if (this.type === 1) {
-            // 此时将代码提交审核
+            // 此时将代码提交审核(当不同人先后顺序上传代码后，这里应该以版本号做对比)
+            const versionMaxIndex = await this.compareVersion(page)
             const el = await page.$$('.code_version_dev .code_version_log_ft')
-            await el[el.length - 1].click()
+            await el[versionMaxIndex].click()
             await page.waitFor(1000)
             // 有微信自己插件的情况下
             const wxPlugin = await page.$('[extclass="dialog_component"]  .weui-desktop-btn_primary')
@@ -398,15 +424,13 @@ export default {
             await page.waitFor(2000)
             const pages = (await browser.pages())[2]
             const text = await pages.$('textarea')
-            await text.evaluate(node => {
-              node.value = ''
-            })
+            await text.evaluate(node => node.value = '')
             await pages.type('textarea', 'release update')
             await pages.click('.tool_bar')
             await pages.waitFor(1000)
-            // await pages.close()
+            await pages.close()
           } else if (this.type === 3) {
-            // 此时生成小程序二维
+            // 此时生成小程序任意页面二维
             await page.evaluate(() => {
               // 隐藏节点的click必须这么触发。page.click()无效
               document.querySelector('[data-msgid="生成小程序码"]').click()
@@ -422,40 +446,42 @@ export default {
             await page.click('.weui-desktop-btn_primary')
             await page.waitForSelector('.image-wrp')
             const ewm = await page.$('.image-wrp img')
-            const desktop = `${os.homedir()}/Desktop`
-            const isDirectory = fs.existsSync(`${desktop}/ewm`)
+            const desktop = `${os.homedir()}${slash}Desktop`
+            const isDirectory = fs.existsSync(`${desktop}${slash}ewm`)
             if (!isDirectory) {
-              await promise(`mkdir ${desktop}/ewm`)
+              await promise(`mkdir ${desktop}${slash}ewm`)
             }
             timeStamp = Date.now()
             await ewm.screenshot({
-              path: `${desktop}/ewm/${timeStamp}.png`
+              path: `${desktop}${slash}ewm${slash}${timeStamp}.png`
             })
           } else if (this.type === 4) {
-            // 生成体验版小程序二维码
-            const el = await page.$('.status_tag.info')
-            if (el) {
+            // 生成体验版小程序二维码（以版本号为基准）
+            const versionMaxIndex = await this.compareVersion(page)
+            const el = await page.$$('.code_version_dev .code_version_log_ft .arrowBtn')
+            await el[versionMaxIndex].click()
+            await page.waitFor(1000)
+            const elLi = await page.$('.weui-desktop-dropdown__list li:first-child')
+            const txt = await elLi.evaluate(node => node.innerText)
+            const bol = txt.includes('取消')
+            if (bol) {
               await page.click('.status_tag.info')
             } else {
-              const el = await page.$$('.code_version_dev .code_version_log_ft .arrowBtn')
-              await el[el.length - 1].click()
-              await page.waitFor(1000)
-              await page.click('.weui-desktop-dropdown__list li:first-child')
+              await elLi.click()
               await page.waitFor(1000)
               await page.click('.server_url_dialog button.weui-desktop-btn_primary')
             }
-            // await page.waitForSelector('.pic_code_qrcode')
-            await page.waitFor(1000)
+            await page.waitForSelector('.pic_code_qrcode')
             const ewm = await page.$('.pic_code_qrcode')
-            const desktop = `${os.homedir()}/Desktop`
-            const isDirectory = fs.existsSync(`${desktop}/ewm`)
+            const desktop = `${os.homedir()}${slash}Desktop`
+            const isDirectory = fs.existsSync(`${desktop}${slash}ewm`)
             if (!isDirectory) {
-              await promise(`mkdir ${desktop}/ewm`)
+              await promise(`mkdir ${desktop}${slash}ewm`)
             }
             const userName = await page.$('.user_name')
             const name = await userName.evaluate(node => node.innerText)
             await ewm.screenshot({
-              path: `${desktop}/ewm/${name}.png`
+              path: `${desktop}${slash}ewm${slash}${name}.png`
             })
           }
           await page.evaluate(() => {
@@ -487,7 +513,6 @@ export default {
         }, Promise.resolve())
       }
     },
-
     /**
      * 删除
      * @param index
@@ -566,17 +591,89 @@ export default {
         row.path = path
         el.removeEventListener('change', handleChange)
         el.value = '' // 这个很重要。不然就会导致后续再次重复选取同样文件夹change事件不会被触发
+        if (this.isMultiple) {
+          this.readDirFiles(path).then(res => {
+            this.file1 = []
+            res.forEach((v) => {
+              if (!v.includes('.')) {
+                this.file1.push({
+                  path: `${path}${slash}${v}`,
+                  appletsName: v,
+                  info: 'update code'
+                })
+              }
+            })
+          })
+        }
       }
       const el = document.querySelector(`[data-index="${index}"]`)
       el.click()
       el.addEventListener('change', handleChange)
     },
     /**
+     * 导入excel读取账号密码
+     */
+    exportExcel() {
+      const el = this.$refs.excel
+      const {path} = el.files[0]
+      const sheets = xlsx.parse(path)[0].data
+      const userIndex = sheets[0].findIndex((v) => v.includes('账号'))
+      const pwdIndex = sheets[0].findIndex((v) => v.includes('密码'))
+      sheets.shift(-1)
+      this.file2 = sheets.map(v => {
+        return {
+          user: v[userIndex],
+          pwd: v[pwdIndex],
+          path: ''
+        }
+      })
+      el.value = ''
+    },
+    /**
      * 关闭浏览器
      */
     async closeBrowser(browser) {
       return await browser.close()
-    }
+    },
+    /**
+     * 读取目录下所有文件
+     * @param path
+     * @returns {Promise<Array>}
+     */
+    readDirFiles(path) {
+      const readDir = util.promisify(fs.readdir)
+      return readDir(path)
+    },
+    /**
+     * 版本号作对比
+     * @param page
+     * @returns {Promise<Number>}
+     */
+    async compareVersion(page) {
+      const versionEl = await page.$$('.code_version_dev .code_version_log_hd .simple_preview_value')
+      let versionMaxIndex = 0
+      if (versionEl.length > 0) {
+        const version = versionEl.map(async (v, i) => {
+          return {
+            text: await v.evaluate((node) => node.innerText),
+            index: i
+          }
+        })
+        const result = await Promise.all(version)
+        // 将版本号由大到小排序
+        result.sort((a, b) => {
+          if (a.text < b.text) {
+            return 1
+          }
+          if (a.text > b.text) {
+            return -1
+          }
+          return 0
+        })
+        versionMaxIndex = result[0].index
+      }
+      return versionMaxIndex
+    },
   },
   mounted() {
     this.file1 = JSON.parse(localStorage.getItem('file1')) || [
@@ -779,6 +876,15 @@ export default {
       width: 100%;
       height: 100%;
     }
+  }
+
+  .export {
+    margin-left: 20px;
+  }
+
+  .mutiple {
+    position: absolute;
+    right: 30px;
   }
 
 }
