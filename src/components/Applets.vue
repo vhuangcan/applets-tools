@@ -12,9 +12,13 @@
             clearable
             class="cli"
           />
-          <el-checkbox v-model="isMultiple" class="mutiple">
-            启用批量读取文件夹路径功能
-          </el-checkbox>
+          <el-input
+            @change="setAllVersion"
+            class="mutiple"
+            clearable
+            v-model="versionNumber"
+            placeholder="同步版本号"
+          />
         </fragment>
         <fragment v-else>
           <el-radio-group v-model="type">
@@ -70,15 +74,6 @@
           <el-table-column width="auto">
             <template slot-scope="scope">
               <div class="input">
-                <input
-                  class="visible"
-                  :data-index="scope.$index"
-                  type="file"
-                  multiple
-                  placeholder="文件夹地址"
-                  allowdirs
-                  webkitdirectory
-                />
                 <el-input
                   @click.native="selectPath(scope.$index,scope.row)"
                   placeholder="文件夹地址"
@@ -177,6 +172,8 @@
     <div class="tips">
       <p class="total">
         {{total}}
+        <br>
+        {{complete}}
       </p>
       <p class="tips">
         {{tips}}
@@ -196,7 +193,7 @@
 
 <script>
 import puppeteer from 'puppeteer-core'
-import {remote, ipcRenderer} from 'electron'
+import {remote, ipcRenderer, BrowserWindow, dialog} from 'electron'
 import util from 'util'
 import fs from 'fs'
 import os from 'os'
@@ -225,7 +222,8 @@ export default {
       img: '',
       version: 1,
       cli: '',
-      isMultiple: false
+      complete: '',
+      versionNumber: ''
     }
   },
 
@@ -282,9 +280,13 @@ export default {
       this.handleEmit().catch(err => {
         this.error = err
         this.upload = false
-        if (this.version > 2) {
-          // 出错关闭 headless chrome
+        if (this.version !== 1) {
+          // 出错关闭 headless chrome .重新执行任务
+          this.error = '由于网络原因导致出错，正在尝试重新从出错位置开始执行任务~！'
           this.closeBrowser(this.browser)
+          this.multipleSelection2 = this.multipleSelection2.slice(this.index - 1)
+          fs.unlinkSync(path.resolve(__dirname, '..', '..', `./${this.timeStamp}.png`))
+          this.uploadCode()
         }
       })
     },
@@ -305,16 +307,15 @@ export default {
         this.upload = false
         return
       }
-      let timeStamp
       const exec = util.promisify(childProcess.exec)
       const promise = async (cli) => await exec(cli)
       if (version === 1) {
         const cli = this.cli ? this.cli : '/Applications/wechatwebdevtools.app/Contents/MacOS/cli'
         const automationUpload = async (obj, i) => {
           if (i === 1) {
-            timeStamp = Date.now()
+            this.timeStamp = Date.now()
           }
-          this.tips = `当前${obj.appletsName}小程序的代码正在上传`
+          this.tips = `当前${obj.appletsName}小程序的代码正在上传,已上传${i}个`
           // 上传代码
           await promise(`${cli} upload --project ${obj.path} -v ${obj.version} -d ${obj.info} `)
 
@@ -322,7 +323,7 @@ export default {
 
           if (selectItem.length === i) {
             this.tips = `所有小程序的代码均已上传完毕~!
-           一共花费的时间为${(Date.now() - timeStamp) / 1000}s`
+           一共花费的时间为${(Date.now() - this.timeStamp) / 1000}s`
             this.upload = false
             localStorage.setItem('cli', this.cli)
             localStorage.setItem(`file${this.version}`, JSON.stringify(selectItem))
@@ -359,6 +360,7 @@ export default {
         await page.goto(url, {waitUntil: 'networkidle0'})
 
         const automation = async (user, pwd, i) => {
+          this.index = i
           await page.evaluate(() => {
             document.querySelector('.login__type__container__scan .login__type__container__select-type').click()
           })
@@ -370,11 +372,11 @@ export default {
             await page.waitForSelector('.js_qrcode')
             await page.waitFor(1000)
             const imgEl = await page.$('.js_qrcode')
-            timeStamp = Date.now()
+            this.timeStamp = Date.now()
             await imgEl.screenshot({
-              path: path.resolve(__dirname, '..', '..', `./${timeStamp}.png`)
+              path: path.resolve(__dirname, '..', '..', `./${this.timeStamp}.png`)
             })
-            this.img = `file://${path.resolve(__dirname, '..', '..', `./${timeStamp}.png`)}`
+            this.img = `file://${path.resolve(__dirname, '..', '..', `./${this.timeStamp}.png`)}`
             await page.waitForSelector('.js_wording') // 等待跳转后出现此class类
             const elTips = await page.$('.js_wording')
             this.tips = await elTips.evaluate(node => node.innerText)
@@ -393,15 +395,15 @@ export default {
             const el = await page.$$('.mr.weui-desktop-btn.weui-desktop-btn_primary')
             await el[el.length - 2].click()
             await page.waitForSelector('.weui-desktop-qrcheck__img')
-            await page.waitFor(4000)
+            await page.waitFor(1000)
             if (!this.isBrowser) {
               const imgEl = await page.$('.weui-desktop-qrcheck__img')
-              fs.unlinkSync(path.resolve(__dirname, '..', '..', `./${timeStamp}.png`))
-              timeStamp = Date.now()
+              fs.unlinkSync(path.resolve(__dirname, '..', '..', `./${this.timeStamp}.png`))
+              this.timeStamp = Date.now()
               await imgEl.screenshot({
-                path: path.resolve(__dirname, '..', '..', `./${timeStamp}.png`)
+                path: path.resolve(__dirname, '..', '..', `./${this.timeStamp}.png`)
               })
-              this.img = `file://${path.resolve(__dirname, '..', '..', `./${timeStamp}.png`)}`
+              this.img = `file://${path.resolve(__dirname, '..', '..', `./${this.timeStamp}.png`)}`
               this.tips = '继续扫码确认发布代码~'
             }
             await page.waitForSelector('.empty_box')
@@ -451,9 +453,9 @@ export default {
             if (!isDirectory) {
               await promise(`mkdir ${desktop}${slash}ewm`)
             }
-            timeStamp = Date.now()
+            this.timeStamp = Date.now()
             await ewm.screenshot({
-              path: `${desktop}${slash}ewm${slash}${timeStamp}.png`
+              path: `${desktop}${slash}ewm${slash}${this.timeStamp}.png`
             })
           } else if (this.type === 4) {
             // 生成体验版小程序二维码（以版本号为基准）
@@ -484,6 +486,7 @@ export default {
               path: `${desktop}${slash}ewm${slash}${name}.png`
             })
           }
+
           await page.evaluate(() => {
             // 隐藏节点的click必须这么触发。page.click()无效
             document.querySelector('[data-msgid="退出"]').click()
@@ -492,8 +495,9 @@ export default {
           await page.waitForNavigation()
           page = (await browser.pages())[1]
           this.tips = `当前第${i}个小程序处理完成`
+          this.complete = `已处理${i}个`
           if (!this.isBrowser && this.type !== 3) {
-            fs.unlinkSync(path.resolve(__dirname, '..', '..', `./${timeStamp}.png`))
+            fs.unlinkSync(path.resolve(__dirname, '..', '..', `./${this.timeStamp}.png`))
           }
           if (i === selectItem.length) {
             this.tips = `所有小程序均已处理完成`
@@ -578,6 +582,7 @@ export default {
       this.total = ''
       this.tips = ''
       this.img = ''
+      this.complete = ''
     },
     /**
      * 选择路径
@@ -585,30 +590,29 @@ export default {
      * @param row
      */
     selectPath(index, row) {
-      const handleChange = () => {
-        const {name, path} = el.files[0]
-        row.appletsName = name
-        row.path = path
-        el.removeEventListener('change', handleChange)
-        el.value = '' // 这个很重要。不然就会导致后续再次重复选取同样文件夹change事件不会被触发
-        if (this.isMultiple) {
-          this.readDirFiles(path).then(res => {
+      const {dialog} = require('electron').remote
+      const {BrowserWindow} = require('electron').remote
+      dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
+        properties: ['openDirectory', 'multiSelections']
+      }).then((result) => {
+        if (!result.canceled) {
+          const arr = result.filePaths
+          if (arr.length > 1) {
+            // 批量选择文件夹
             this.file1 = []
-            res.forEach((v) => {
-              if (!v.includes('.')) {
-                this.file1.push({
-                  path: `${path}${slash}${v}`,
-                  appletsName: v,
-                  info: 'update code'
-                })
-              }
+            arr.forEach(v => {
+              this.file1.push({
+                path: v,
+                appletsName: v.slice(v.lastIndexOf(slash) + 1),
+                info: 'update code'
+              })
             })
-          })
+            return
+          }
+          row.path = arr[0]
+          row.appletsName = arr[0].slice(arr[0].lastIndexOf(slash) + 1)
         }
-      }
-      const el = document.querySelector(`[data-index="${index}"]`)
-      el.click()
-      el.addEventListener('change', handleChange)
+      })
     },
     /**
      * 导入excel读取账号密码
@@ -622,7 +626,7 @@ export default {
       sheets.shift(-1)
       this.file2 = sheets.map(v => {
         return {
-          user: v[userIndex],
+          user: v[userIndex].replace(/\s+/g, ''),
           pwd: v[pwdIndex],
           path: ''
         }
@@ -674,6 +678,16 @@ export default {
       }
       return versionMaxIndex
     },
+
+    /**
+     * 一键设置版本号
+     */
+    setAllVersion(val) {
+      this.file1 = this.file1.map(v => {
+        v.version = val
+        return v
+      })
+    }
   },
   mounted() {
     this.file1 = JSON.parse(localStorage.getItem('file1')) || [
@@ -885,6 +899,7 @@ export default {
   .mutiple {
     position: absolute;
     right: 30px;
+    width: 15% !important;
   }
 
 }

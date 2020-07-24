@@ -26,7 +26,7 @@
     "@vue/cli-plugin-babel": "^4.1.0",
     "@vue/cli-service": "^4.1.0",
     "babel-plugin-component": "^1.1.1",
-    "electron": "^6.0.0",
+    "electron": "^9.1.1",
     "node-sass": "^4.12.0",
     "prettier": "^1.19.1",
     "sass-loader": "^8.0.0",

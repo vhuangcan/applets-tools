@@ -1,5 +1,5 @@
 "use strict"
-import {app, protocol, BrowserWindow, Menu} from "electron"
+import {app, protocol, BrowserWindow, Menu,screen} from "electron"
 import {
   createProtocol,
   installVueDevtools
@@ -10,6 +10,12 @@ autoUpdater.autoDownload = true
 
 const isDevelopment = process.env.NODE_ENV !== "production"
 
+app.whenReady().then(() => {
+  protocol.registerFileProtocol('file', (request, callback) => {
+    const pathname = decodeURI(request.url.replace('file:///', ''))
+    callback(pathname)
+  })
+})
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win
@@ -20,13 +26,18 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 function createWindow() {
+  const useH = parseInt(0.865 * screen.getPrimaryDisplay().workAreaSize.height)
+  const useW = parseInt(0.725 * screen.getPrimaryDisplay().workAreaSize.width)
+
   // Create the browser window.
   win = new BrowserWindow({
-    width: 1200,
-    height: 600,
+    width: useW,
+    height: useH,
+    show: false,
     webPreferences: {
       nodeIntegration: true,
-      webSecurity: false
+      webSecurity: false, // electron 9以上版本这个失效 解决办法 https://github.com/electron/electron/issues/23664
+      enableRemoteModule: true
     }
   })
 
@@ -42,6 +53,9 @@ function createWindow() {
   }
   win.on("closed", () => {
     win = null
+  })
+  win.on("ready-to-show", () => {
+    win.show()
   })
   createMenu()
 }
@@ -97,6 +111,8 @@ app.on("ready", async () => {
   }
   createWindow()
 })
+
+
 
 // 设置菜单栏
 function createMenu() {
