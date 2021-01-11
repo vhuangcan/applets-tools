@@ -1,5 +1,5 @@
 "use strict"
-import {app, protocol, BrowserWindow, Menu,screen} from "electron"
+import {app, protocol,BrowserWindow, Menu,screen} from "electron"
 import {
   createProtocol,
   installVueDevtools

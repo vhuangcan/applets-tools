@@ -1,6 +1,6 @@
 {
   "name": "applets-tools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "hc",
   "description": "小程序便捷工具",
   "private": true,
@@ -8,7 +8,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "electron:build": "vue-cli-service electron:build",
+    "electron:build": "vue-cli-service electron:build -w",
     "electron:serve": "vue-cli-service electron:serve",
     "publish": "npm run electron:build -- -mw -p always"
   },

@@ -1,23 +1,23 @@
 <template>
   <div class="applets">
     <h3 class="title">
-      {{version === 1? '小程序代码上传' : '小程序代码提交审核与生成小程序页面二维码'}}
+      {{ version === 1 ? '小程序代码上传' : '小程序代码提交审核与生成小程序页面二维码' }}
     </h3>
     <transition-group tag="div" class="box" name="flip-list" mode="out-in">
       <div class="item" key="11">
         <fragment v-if="version === 1">
           <el-input
-            placeholder="windows下请输入小程序cli的地址,一定要加上双引号"
-            v-model="cli"
-            clearable
-            class="cli"
+              placeholder="windows下请输入小程序cli的地址,一定要加上双引号"
+              v-model="cli"
+              clearable
+              class="cli"
           />
           <el-input
-            @change="setAllVersion"
-            class="mutiple"
-            clearable
-            v-model="versionNumber"
-            placeholder="同步版本号"
+              @change="setAllVersion"
+              class="mutiple"
+              clearable
+              v-model="versionNumber"
+              placeholder="同步版本号"
           />
         </fragment>
         <fragment v-else>
@@ -28,21 +28,21 @@
             <el-radio :label="4">生成小程序体验二维码</el-radio>
           </el-radio-group>
           <el-checkbox
-            v-model="isBrowser"
-            style="margin-left: 30px"
+              v-model="isBrowser"
+              style="margin-left: 30px"
           >
             开启代码提交全过程(可选)
           </el-checkbox>
           <div class="input export">
             <input
-              class="visible"
-              type="file"
-              ref="excel"
-              @change="exportExcel"
+                class="visible"
+                type="file"
+                ref="excel"
+                @change="exportExcel"
             />
             <el-button
-              round
-              type="success"
+                round
+                type="success"
             >
               导入excel
             </el-button>
@@ -50,24 +50,24 @@
         </fragment>
       </div>
       <el-table
-        @selection-change="handleSelectionChange"
-        ref="table"
-        key="table"
-        :data="version === 1 ? file1 : file2"
+          @selection-change="handleSelectionChange"
+          ref="table"
+          key="table"
+          :data="version === 1 ? file1 : file2"
       >
         <el-table-column
-          fixed
-          class-name="enterTo padLeft"
-          type="selection"
-          width="30"
+            fixed
+            class-name="enterTo padLeft"
+            type="selection"
+            width="30"
         />
         <fragment v-if="version === 1">
           <el-table-column width="auto" label="全选">
             <template slot-scope="scope">
               <el-input
-                clearable
-                placeholder="小程序名称"
-                v-model="scope.row.appletsName"
+                  clearable
+                  placeholder="小程序名称"
+                  v-model="scope.row.appletsName"
               />
             </template>
           </el-table-column>
@@ -75,9 +75,9 @@
             <template slot-scope="scope">
               <div class="input">
                 <el-input
-                  @click.native="selectPath(scope.$index,scope.row)"
-                  placeholder="文件夹地址"
-                  v-model="scope.row.path"
+                    @click.native="selectPath(scope.$index,scope.row)"
+                    placeholder="文件夹地址"
+                    v-model="scope.row.path"
                 />
               </div>
             </template>
@@ -85,18 +85,18 @@
           <el-table-column width="auto">
             <template slot-scope="scope">
               <el-input
-                clearable
-                placeholder="版本号"
-                v-model="scope.row.version"
+                  clearable
+                  placeholder="版本号"
+                  v-model="scope.row.version"
               />
             </template>
           </el-table-column>
           <el-table-column width="auto">
             <template slot-scope="scope">
               <el-input
-                clearable
-                placeholder="更新内容"
-                v-model="scope.row.info"
+                  clearable
+                  placeholder="更新内容"
+                  v-model="scope.row.info"
               />
             </template>
           </el-table-column>
@@ -105,29 +105,29 @@
           <el-table-column width="auto" label="全选" class-name="enterTo">
             <template slot-scope="scope">
               <el-input
-                clearable
-                placeholder="微信公众平台用户名"
-                v-model="scope.row.user"
+                  clearable
+                  placeholder="微信公众平台用户名"
+                  v-model="scope.row.user"
               />
             </template>
           </el-table-column>
           <el-table-column width="auto" class-name="enterTo">
             <template slot-scope="scope">
               <el-input
-                clearable
-                type="password"
-                show-password
-                placeholder="微信公众平台密码"
-                v-model="scope.row.pwd"
+                  clearable
+                  type="password"
+                  show-password
+                  placeholder="微信公众平台密码"
+                  v-model="scope.row.pwd"
               />
             </template>
           </el-table-column>
           <el-table-column v-if="type === 3" width="auto" class-name="enterTo">
             <template slot-scope="scope">
               <el-input
-                clearable
-                placeholder="小程序任意页面路径"
-                v-model="scope.row.path"
+                  clearable
+                  placeholder="小程序任意页面路径"
+                  v-model="scope.row.path"
               />
             </template>
           </el-table-column>
@@ -135,35 +135,35 @@
         <el-table-column width="73" class-name="enterTo">
           <template slot-scope="scope">
             <el-button
-              type="danger"
-              icon="el-icon-plus"
-              round
-              v-if="scope.$index===0"
-              @click="add"
+                type="danger"
+                icon="el-icon-plus"
+                round
+                v-if="scope.$index===0"
+                @click="add"
             />
             <el-button
-              type="danger"
-              icon="el-icon-minus"
-              round v-if="scope.$index!==0"
-              @click.prevent="del(scope.$index)"
+                type="danger"
+                icon="el-icon-minus"
+                round v-if="scope.$index!==0"
+                @click.prevent="del(scope.$index)"
             />
           </template>
         </el-table-column>
       </el-table>
       <div class="btn-wrap" key="btn">
         <el-button
-          type="danger"
-          :loading="upload"
-          key="10"
-          @click="uploadCode"
+            type="danger"
+            :loading="upload"
+            key="10"
+            @click="uploadCode"
         >
           提交代码
         </el-button>
         <el-button
-          :disabled="upload"
-          type="warning"
-          key="12"
-          @click="clearStore"
+            :disabled="upload"
+            type="warning"
+            key="12"
+            @click="clearStore"
         >
           清除记录
         </el-button>
@@ -171,21 +171,21 @@
     </transition-group>
     <div class="tips">
       <p class="total">
-        {{total}}
+        {{ total }}
         <br>
-        {{complete}}
+        {{ complete }}
       </p>
       <p class="tips">
-        {{tips}}
+        {{ tips }}
         <img
-          :src="img"
-          alt=""
-          class="img"
-          v-if="img"
+            :src="img"
+            alt=""
+            class="img"
+            v-if="img"
         >
       </p>
       <p class="error" v-if="error">
-        {{error}}
+        {{ error }}
       </p>
     </div>
   </div>
@@ -193,7 +193,7 @@
 
 <script>
 import puppeteer from 'puppeteer-core'
-import {remote, ipcRenderer, BrowserWindow, dialog} from 'electron'
+import {remote, ipcRenderer} from 'electron'
 import util from 'util'
 import fs from 'fs'
 import os from 'os'
@@ -392,8 +392,14 @@ export default {
           if (this.type === 2) {
             // 此时将代码提交上线
             await page.click('.user_status .weui-desktop-popover__wrp')
-            const el = await page.$$('.mr.weui-desktop-btn.weui-desktop-btn_primary')
-            await el[el.length - 2].click()
+            await page.evaluate(() => {
+              const btn = document.querySelectorAll('.mr.weui-desktop-btn.weui-desktop-btn_primary')
+              btn.forEach((el) => {
+                if (el.textContent.includes('提交')) {
+                  el.click()
+                }
+              })
+            })
             await page.waitForSelector('.weui-desktop-qrcheck__img')
             await page.waitFor(1000)
             if (!this.isBrowser) {
@@ -640,15 +646,6 @@ export default {
       return await browser.close()
     },
     /**
-     * 读取目录下所有文件
-     * @param path
-     * @returns {Promise<Array>}
-     */
-    readDirFiles(path) {
-      const readDir = util.promisify(fs.readdir)
-      return readDir(path)
-    },
-    /**
      * 版本号作对比
      * @param page
      * @returns {Promise<Number>}
@@ -678,7 +675,6 @@ export default {
       }
       return versionMaxIndex
     },
-
     /**
      * 一键设置版本号
      */
@@ -901,6 +897,5 @@ export default {
     right: 30px;
     width: 15% !important;
   }
-
 }
 </style>
